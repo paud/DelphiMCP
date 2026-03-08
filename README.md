@@ -24,6 +24,7 @@ Compatible with:
 
 
 Project structure:
+<pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">
 
 root/
 │
@@ -80,3 +81,5 @@ delphi-mcp-sdk/
     ├─ architecture.md
     ├─ protocol.md
     └─ examples.md
+
+</pre>
