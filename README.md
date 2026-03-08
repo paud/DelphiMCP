@@ -21,3 +21,62 @@ Compatible with:
 - Cursor
 - Continue
 - other MCP clients
+
+
+Project structure:
+
+root/
+│
+delphi-mcp-sdk/
+│
+├─ README.md
+├─ LICENSE
+├─ CHANGELOG.md
+├─ CONTRIBUTING.md
+│
+├─ src/
+│   ├─ MCP.pas
+│   ├─ MCP.Types.pas
+│   ├─ MCP.JSONRPC.pas
+│   ├─ MCP.Parser.pas
+│   ├─ MCP.Transport.Stdio.pas
+│   ├─ MCP.Transport.HTTP.pas
+│   ├─ MCP.Server.pas
+│   ├─ MCP.Client.pas
+│   │
+│   ├─ tools/
+│   │   ├─ MCP.Tools.pas
+│   │   └─ MCP.ToolSchema.pas
+│   │
+│   ├─ resources/
+│   │   └─ MCP.Resources.pas
+│   │
+│   ├─ prompts/
+│   │   └─ MCP.Prompts.pas
+│   │
+│   ├─ streaming/
+│   │   └─ MCP.Streaming.pas
+│   │
+│   └─ utils/
+│       ├─ MCP.JSONUtils.pas
+│       └─ MCP.Log.pas
+│
+├─ examples/
+│   ├─ echo-server/
+│   │   └─ EchoServer.dpr
+│   │
+│   ├─ file-server/
+│   │   └─ FileServer.dpr
+│   │
+│   └─ http-server/
+│       └─ HttpMcpServer.dpr
+│
+├─ tests/
+│   ├─ ParserTests.dpr
+│   ├─ ToolTests.dpr
+│   └─ JsonRpcTests.dpr
+│
+└─ docs/
+    ├─ architecture.md
+    ├─ protocol.md
+    └─ examples.md
