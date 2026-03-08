@@ -3,7 +3,7 @@ unit MCP.Resources;
 interface
 
 uses
-  System.Classes, System.SysUtils, System.JSON, MCP.Types;
+  System.Classes, System.SysUtils, System.JSON, System.Generics.Collections, MCP.Types;
 
 type
   TMcpResourceManager = class

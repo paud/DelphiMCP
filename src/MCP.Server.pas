@@ -38,7 +38,11 @@ begin
   FTools := TObjectList<TMcpToolEntry>.Create;
   FResourceManager := TMcpResourceManager.Create;
   FPromptManager := TMcpPromptManager.Create;
-  FTransport := TMcpStdioTransport.Create(HandleMessage);
+  FTransport := TMcpStdioTransport.Create(
+    procedure(AMsg: IMcpMessage)
+    begin
+      HandleMessage(AMsg);
+    end);
   FInitialized := False;
 end;
 

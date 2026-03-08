@@ -36,7 +36,11 @@ begin
   inherited Create;
   FRequestId := 0;
   FPendingRequests := TDictionary<string, TProc<TJsonRpcResponse>>.Create;
-  FTransport := TMcpStdioTransport.Create(HandleMessage);
+  FTransport := TMcpStdioTransport.Create(
+    procedure(AMsg: IMcpMessage)
+    begin
+      HandleMessage(AMsg);
+    end);
   FInitialized := False;
 end;
 
