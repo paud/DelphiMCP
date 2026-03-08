@@ -1,5 +1,14 @@
 # Delphi MCP SDK
 
+<p align="center">
+  <img src="assets/logo.png" width="180" alt="MCP SDK Logo"/>
+</p>
+
+<h1 align="center">MCP SDK For Delphi</h1>
+<p align="center">
+A complete MCP parser and SDK implementation.
+</p>
+
 Model Context Protocol SDK for Delphi.
 
 This project implements a full MCP server/client stack compatible with modern AI tools.
@@ -24,6 +33,9 @@ Compatible with:
 
 
 MIT License
+
+
+
 
 Project structure:
 <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">
