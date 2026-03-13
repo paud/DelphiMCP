@@ -8,7 +8,9 @@
 <p align="center">
 A complete MCP parser and SDK implementation.
 </p>
-
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-D4A5A5?style=flat-square" alt="MIT License">
+</p>
 Model Context Protocol SDK for Delphi.
 
 This project implements a full MCP server/client stack compatible with modern AI tools.
