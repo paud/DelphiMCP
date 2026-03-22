@@ -24,6 +24,8 @@ type
     procedure Start;
     procedure Stop;
     procedure RegisterTool(const ATool: TMcpTool; AExecute: TToolExecuteFunc);
+    function GetToolsAsJson: TJSONArray;
+    function ExecuteTool(const AName: string; const AArgs: TJSONObject): TJSONObject;
     property ResourceManager: TMcpResourceManager read FResourceManager;
     property PromptManager: TMcpPromptManager read FPromptManager;
   end;
@@ -142,6 +144,41 @@ begin
   begin
     SendResponse(ARequest.GetMessageId, TJSONObject.Create.AddPair('prompts', FPromptManager.ListPrompts));
   end;
+end;
+
+function TMcpServer.GetToolsAsJson: TJSONArray;
+var
+  LTool: TMcpToolEntry;
+  LToolObj: TJSONObject;
+  LFuncObj: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  for LTool in FTools do
+  begin
+    LToolObj := TJSONObject.Create;
+    LToolObj.AddPair('type', 'function');
+    
+    LFuncObj := TJSONObject.Create;
+    LFuncObj.AddPair('name', LTool.Info.Name);
+    LFuncObj.AddPair('description', LTool.Info.Description);
+    LFuncObj.AddPair('parameters', LTool.Info.InputSchema.Clone as TJSONObject);
+    
+    LToolObj.AddPair('function', LFuncObj);
+    Result.Add(LToolObj);
+  end;
+end;
+
+function TMcpServer.ExecuteTool(const AName: string; const AArgs: TJSONObject): TJSONObject;
+var
+  LTool: TMcpToolEntry;
+begin
+  Result := nil;
+  for LTool in FTools do
+    if LTool.Info.Name = AName then
+    begin
+      Result := LTool.Execute(AArgs);
+      exit;
+    end;
 end;
 
 procedure TMcpServer.SendResponse(const AId: TJSONValue; const AResult: TJSONValue);
