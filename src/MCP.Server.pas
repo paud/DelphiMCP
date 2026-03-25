@@ -25,6 +25,7 @@ type
     procedure Stop;
     procedure RegisterTool(const ATool: TMcpTool; AExecute: TToolExecuteFunc);
     function GetToolsAsJson: TJSONArray;
+    function ListToolsAsJson: TJSONArray;
     function ExecuteTool(const AName: string; const AArgs: TJSONObject): TJSONObject;
     property ResourceManager: TMcpResourceManager read FResourceManager;
     property PromptManager: TMcpPromptManager read FPromptManager;
@@ -109,16 +110,7 @@ begin
 
   if LMethod = 'tools/list' then
   begin
-    LToolsArr := TJSONArray.Create;
-    for LTool in FTools do
-    begin
-      LToolObj := TJSONObject.Create;
-      LToolObj.AddPair('name', LTool.Info.Name);
-      LToolObj.AddPair('description', LTool.Info.Description);
-      LToolObj.AddPair('inputSchema', LTool.Info.InputSchema.Clone as TJSONObject);
-      LToolsArr.Add(LToolObj);
-    end;
-    LResult := TJSONObject.Create.AddPair('tools', LToolsArr);
+    LResult := TJSONObject.Create.AddPair('tools', ListToolsAsJson);
     SendResponse(ARequest.GetMessageId, LResult);
   end
   else if LMethod = 'tools/call' then
@@ -143,6 +135,22 @@ begin
   else if LMethod = 'prompts/list' then
   begin
     SendResponse(ARequest.GetMessageId, TJSONObject.Create.AddPair('prompts', FPromptManager.ListPrompts));
+  end;
+end;
+
+function TMcpServer.ListToolsAsJson: TJSONArray;
+var
+  LTool: TMcpToolEntry;
+  LToolObj: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  for LTool in FTools do
+  begin
+    LToolObj := TJSONObject.Create;
+    LToolObj.AddPair('name', LTool.Info.Name);
+    LToolObj.AddPair('description', LTool.Info.Description);
+    LToolObj.AddPair('inputSchema', LTool.Info.InputSchema.Clone as TJSONObject);
+    Result.Add(LToolObj);
   end;
 end;
 
