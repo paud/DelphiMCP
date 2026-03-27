@@ -179,10 +179,17 @@ end;
 function TMcpServer.ExecuteTool(const AName: string; const AArgs: TJSONObject): TJSONObject;
 var
   LTool: TMcpToolEntry;
+  LCleanName: string;
+  LPos: Integer;
 begin
+  LCleanName := AName;
+  LPos := Pos(':', AName);
+  if LPos > 0 then
+    LCleanName := Copy(AName, LPos + 1, Length(AName) - LPos);
+
   Result := nil;
   for LTool in FTools do
-    if LTool.Info.Name = AName then
+    if (LTool.Info.Name = AName) or (LTool.Info.Name = LCleanName) then
     begin
       Result := LTool.Execute(AArgs);
       exit;
