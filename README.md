@@ -1,9 +1,6 @@
 # Delphi MCP SDK
 
 ![Preview](https://raw.githubusercontent.com/paud/DelphiMCP/main/assets/logo-social.png)
-<p align="center">
-  <img src="assets/logo.png" width="180" alt="MCP SDK Logo"/>
-</p>
 <h1 align="center">MCP SDK For Delphi</h1>
 <p align="center">
 A complete MCP parser and SDK implementation.
