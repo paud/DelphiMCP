@@ -165,12 +165,12 @@ begin
   begin
     LToolObj := TJSONObject.Create;
     LToolObj.AddPair('type', 'function');
-    
+
     LFuncObj := TJSONObject.Create;
+    LFuncObj.AddPair('parameters', LTool.Info.InputSchema.Clone as TJSONObject);
     LFuncObj.AddPair('name', LTool.Info.Name);
     LFuncObj.AddPair('description', LTool.Info.Description);
-    LFuncObj.AddPair('parameters', LTool.Info.InputSchema.Clone as TJSONObject);
-    
+
     LToolObj.AddPair('function', LFuncObj);
     Result.Add(LToolObj);
   end;
