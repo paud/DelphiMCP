@@ -1,4 +1,4 @@
-unit MCP.Server;
+﻿unit MCP.Server;
 
 interface
 
@@ -16,7 +16,7 @@ type
     FInitialized: Boolean;
     procedure HandleMessage(const AMessage: IMcpMessage);
     procedure HandleRequest(const ARequest: TJsonRpcRequest);
-    procedure SendResponse(const AId: TJSONValue; const AResult: TJSONValue);
+    procedure SendResponse(const AId: TJSONValue; const AResult: TJSONValue);   //we also need a fn point to custom sendResponse
     procedure SendError(const AId: TJSONValue; ACode: Integer; const AMessage: string);
   public
     constructor Create;
@@ -26,7 +26,7 @@ type
     procedure RegisterTool(const ATool: TMcpTool; AExecute: TToolExecuteFunc);
     function GetToolsAsJson: TJSONArray;
     function ListToolsAsJson: TJSONArray;
-    function ExecuteTool(const AName: string; const AArgs: TJSONObject): TJSONObject;
+    function ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue;var sync:Boolean): TJSONObject;
     property ResourceManager: TMcpResourceManager read FResourceManager;
     property PromptManager: TMcpPromptManager read FPromptManager;
   end;
@@ -115,18 +115,44 @@ begin
   end
   else if LMethod = 'tools/call' then
   begin
-    LToolName := ARequest.Params.GetValue('name').Value;
-    LArgs := ARequest.Params.GetValue('arguments') as TJSONObject;
-    
+    LToolName :=
+      ARequest.Params.GetValue('name').Value;
+
+    LArgs :=
+      ARequest.Params.GetValue('arguments')
+        as TJSONObject;
+
+    var LSync: Boolean;
+    var LId: TJSONValue;
+
     for LTool in FTools do
       if LTool.Info.Name = LToolName then
       begin
-        LResult := LTool.Execute(LArgs);
-        SendResponse(ARequest.GetMessageId, LResult);
+        // 必须 Clone（极重要）
+        LId := ARequest.GetMessageId.Clone as TJSONObject;
+
+        // 调用 Tool
+        LResult :=
+          LTool.Execute(
+            LArgs,
+            LId,
+            Self,
+            LSync
+          );
+
+        // 如果是同步 → 立即返回
+        if LSync then
+        begin
+          SendResponse(
+            ARequest.GetMessageId,
+            LResult
+          );
+        end;
+
         exit;
       end;
-    
-    SendError(ARequest.GetMessageId, -32601, 'Tool not found');
+
+    SendError(ARequest.GetMessageId,-32601,'Tool not found');
   end
   else if LMethod = 'resources/list' then
   begin
@@ -176,22 +202,41 @@ begin
   end;
 end;
 
-function TMcpServer.ExecuteTool(const AName: string; const AArgs: TJSONObject): TJSONObject;
+function TMcpServer.ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue;var sync:Boolean): TJSONObject;
 var
   LTool: TMcpToolEntry;
   LCleanName: string;
   LPos: Integer;
 begin
   LCleanName := AName;
+
   LPos := Pos(':', AName);
+
   if LPos > 0 then
-    LCleanName := Copy(AName, LPos + 1, Length(AName) - LPos);
+    LCleanName := Copy(
+      AName,
+      LPos + 1,
+      Length(AName) - LPos
+    );
 
   Result := nil;
+  sync := True;
+
   for LTool in FTools do
-    if (LTool.Info.Name = AName) or (LTool.Info.Name = LCleanName) then
+    if (LTool.Info.Name = AName)
+    or (LTool.Info.Name = LCleanName) then
     begin
-      Result := LTool.Execute(AArgs);
+      Result := LTool.Execute(
+        AArgs,
+        ARequestId,
+        Self,
+        sync
+      );
+      if sync and Assigned(Result) then
+      begin //if sync, assemble the result completely, or do it in customer caller
+        Result.AddPair('name',LTool.Info.Name).AddPair('role', 'tool')
+          .AddPair('tool_call_id',ARequestId.Value);
+      end;
       exit;
     end;
 end;

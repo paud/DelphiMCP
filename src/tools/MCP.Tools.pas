@@ -6,7 +6,13 @@ uses
   System.Classes, System.SysUtils, System.JSON, MCP.Types;
 
 type
-  TToolExecuteFunc = reference to function(const AArgs: TJSONObject): TJSONObject;
+  TToolExecuteFunc =
+    reference to function(
+      const Args: TJSONObject;
+      const RequestId: TJSONValue;
+      const Server: TObject;
+      var sync: Boolean
+    ): TJSONObject;
 
   TMcpToolEntry = class
   private
