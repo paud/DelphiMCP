@@ -50,7 +50,13 @@ begin
 end;
 
 destructor TMcpServer.Destroy;
+var
+  i: Int64;
 begin
+  for i := FTools.Count-1 downto 0 do
+  begin
+    FTools.Items[i].Info.InputSchema.Free;
+  end;
   FTools.Free;
   FResourceManager.Free;
   FPromptManager.Free;
