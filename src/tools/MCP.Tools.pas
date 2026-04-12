@@ -10,8 +10,7 @@ type
     reference to function(
       const Args: TJSONObject;
       const RequestId: TJSONValue;
-      const Server: TObject;
-      var sync: Boolean
+      const Server: TObject
     ): TJSONObject;
 
   TMcpToolEntry = class

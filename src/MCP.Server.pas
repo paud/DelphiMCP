@@ -26,7 +26,7 @@ type
     procedure RegisterTool(const ATool: TMcpTool; AExecute: TToolExecuteFunc);
     function GetToolsAsJson: TJSONArray;
     function ListToolsAsJson: TJSONArray;
-    function ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue;var sync:Boolean): TJSONObject;
+    function ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue): TJSONObject;
     property ResourceManager: TMcpResourceManager read FResourceManager;
     property PromptManager: TMcpPromptManager read FPromptManager;
   end;
@@ -128,7 +128,6 @@ begin
       ARequest.Params.GetValue('arguments')
         as TJSONObject;
 
-    var LSync: Boolean;
     var LId: TJSONValue;
 
     for LTool in FTools do
@@ -142,20 +141,9 @@ begin
           LTool.Execute(
             LArgs,
             LId,
-            Self,
-            LSync
+            Self
           );
-
-        // 如果是同步 → 立即返回
-        if LSync then
-        begin
-          SendResponse(
-            ARequest.GetMessageId,
-            LResult
-          );
-        end;
-
-        exit;
+        LId.Free;
       end;
 
     SendError(ARequest.GetMessageId,-32601,'Tool not found');
@@ -208,7 +196,7 @@ begin
   end;
 end;
 
-function TMcpServer.ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue;var sync:Boolean): TJSONObject;
+function TMcpServer.ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue): TJSONObject;
 var
   LTool: TMcpToolEntry;
   LCleanName: string;
@@ -226,7 +214,6 @@ begin
     );
 
   Result := nil;
-  sync := True;
 
   for LTool in FTools do
     if (LTool.Info.Name = AName)
@@ -235,15 +222,8 @@ begin
       Result := LTool.Execute(
         AArgs,
         ARequestId,
-        Self,
-        sync
+        Self
       );
-      if sync and Assigned(Result) then
-      begin //if sync, assemble the result completely, or do it in customer caller
-        Result.AddPair('name',LTool.Info.Name).AddPair('role', 'tool')
-          .AddPair('tool_call_id',ARequestId.Value);
-      end;
-      exit;
     end;
 end;
 
