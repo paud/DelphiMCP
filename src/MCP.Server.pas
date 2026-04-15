@@ -241,7 +241,10 @@ var
   LTool: TMcpToolEntry;
   LCleanName: string;
   LPos: Integer;
+  LUri: string;
+  LContents: TJSONArray;
 begin
+  Result := nil;
   LCleanName := AName;
 
   LPos := Pos(':', AName);
@@ -253,7 +256,23 @@ begin
       Length(AName) - LPos
     );
 
-  Result := nil;
+  // --- 核心改动：拦截 read_resource 调用 ---
+  if (LCleanName = 'read_resource') then
+  begin
+    if AArgs.TryGetValue('uri', LUri) then
+    begin
+      // 从资源管理器读取内容
+      LContents := FResourceManager.ReadResource(LUri);
+
+      if Assigned(LContents) then
+      begin
+        // 构造返回给模型的格式：{ "content": [ { "uri": "...", "text": "..." } ] }
+        Result := TJSONObject.Create;
+        Result.AddPair('content', LContents);
+        Exit; // 成功处理，直接退出
+      end;
+    end;
+  end;
 
   for LTool in FTools do
     if (LTool.Info.Name = AName)
@@ -264,6 +283,7 @@ begin
         ARequestId,
         Self
       );
+      Exit;
     end;
 end;
 
