@@ -101,8 +101,12 @@ begin
   begin
     FInitialized := True;
     LResult := TJSONObject.Create;
-    TJSONObject(LResult).AddPair('protocolVersion', '2024-11-05');
-    TJSONObject(LResult).AddPair('capabilities', TJSONObject.Create);
+    TJSONObject(LResult).AddPair('protocolVersion', '2026-04-15');
+    // --- add resources ability ---
+    var LCapabilities := TJSONObject.Create;
+    LCapabilities.AddPair('resources', TJSONObject.Create); // 声明支持资源列表和读取
+    TJSONObject(LResult).AddPair('capabilities', LCapabilities);
+    // --------------------------------------
     TJSONObject(LResult).AddPair('serverInfo', TJSONObject.Create.AddPair('name', 'DelphiMCP').AddPair('version', '0.1.0'));
     SendResponse(ARequest.GetMessageId, LResult);
     exit;
@@ -144,6 +148,7 @@ begin
             Self
           );
         LId.Free;
+        Exit;
       end;
 
     SendError(ARequest.GetMessageId,-32601,'Tool not found');
@@ -152,8 +157,17 @@ begin
   begin
     SendResponse(ARequest.GetMessageId, TJSONObject.Create.AddPair('resources', FResourceManager.ListResources));
   end
-  else if LMethod = 'prompts/list' then
+  else if LMethod = 'resources/read' then
   begin
+    var LUri := ARequest.Params.GetValue('uri').Value;
+    var LContents := FResourceManager.ReadResource(LUri); // 调用刚才写的函数
+
+    if LContents <> nil then
+      SendResponse(ARequest.GetMessageId, TJSONObject.Create.AddPair('contents', LContents))
+    else
+      SendError(ARequest.GetMessageId, -32602, 'Resource not found');
+  end
+  else if LMethod = 'prompts/list' then  begin
     SendResponse(ARequest.GetMessageId, TJSONObject.Create.AddPair('prompts', FPromptManager.ListPrompts));
   end;
 end;
@@ -194,6 +208,32 @@ begin
     LToolObj.AddPair('function', LFuncObj);
     Result.Add(LToolObj);
   end;
+  // 2. 关键步骤：手动添加 read_resource 工具，让模型有能力读取资源
+  LToolObj := TJSONObject.Create;
+  LToolObj.AddPair('type', 'function');
+
+  LFuncObj := TJSONObject.Create;
+  LFuncObj.AddPair('name', 'read_resource');
+  LFuncObj.AddPair('description', 'Read the content of a specific resource by its URI. Use this to get API definitions or documentation.');
+
+  // 定义参数 Schema: { uri: string }
+  var LParams := TJSONObject.Create;
+  LParams.AddPair('type', 'object');
+  var LProps := TJSONObject.Create;
+  var LUri := TJSONObject.Create;
+  LUri.AddPair('type', 'string');
+  LUri.AddPair('description', 'The URI of the resource to read (e.g., spcom://api/definitions)');
+  LProps.AddPair('uri', LUri);
+  LParams.AddPair('properties', LProps);
+
+  var LReq := TJSONArray.Create;
+  LReq.Add('uri');
+  LParams.AddPair('required', LReq);
+
+  LFuncObj.AddPair('parameters', LParams);
+  LToolObj.AddPair('function', LFuncObj);
+
+  Result.Add(LToolObj);
 end;
 
 function TMcpServer.ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue): TJSONObject;

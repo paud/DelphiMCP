@@ -1,4 +1,4 @@
-unit MCP.Resources;
+﻿unit MCP.Resources;
 
 interface
 
@@ -14,6 +14,8 @@ type
     destructor Destroy; override;
     procedure RegisterResource(const AResource: TMcpResource);
     function ListResources: TJSONArray;
+    // --- 新增：根据 URI 读取具体内容 ---
+    function ReadResource(const AUri: string): TJSONArray;
   end;
 
 implementation
@@ -51,6 +53,29 @@ begin
     LObj.AddPair('description', LRes.Description);
     LObj.AddPair('mimeType', LRes.MimeType);
     Result.Add(LObj);
+  end;
+end;
+
+// --- 新增实现 ---
+function TMcpResourceManager.ReadResource(const AUri: string): TJSONArray;
+var
+  LRes: TMcpResource;
+  LObj: TJSONObject;
+begin
+  Result := nil;
+  for LRes in FResources do
+  begin
+    if LRes.Uri = AUri then
+    begin
+      Result := TJSONArray.Create;
+      LObj := TJSONObject.Create;
+      LObj.AddPair('uri', LRes.Uri);
+      LObj.AddPair('mimeType', LRes.MimeType);
+      // 这里放入资源的内容，模型读的就是这个 text 字段
+      LObj.AddPair('text', LRes.Content);
+      Result.Add(LObj);
+      Break;
+    end;
   end;
 end;
 

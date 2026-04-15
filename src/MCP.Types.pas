@@ -1,4 +1,4 @@
-unit MCP.Types;
+﻿unit MCP.Types;
 
 interface
 
@@ -38,6 +38,7 @@ type
     Name: string;
     Description: string;
     MimeType: string;
+    Content: string; // 新增：用于存放 TypeScript 定义或文档内容
   end;
 
   TMcpPrompt = record
