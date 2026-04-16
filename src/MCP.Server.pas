@@ -7,6 +7,8 @@ uses
   MCP.Types, MCP.JSONRPC, MCP.Transport.Stdio, MCP.Tools, MCP.Resources, MCP.Prompts;
 
 type
+  TToolExecuteEvent=procedure(Args:TJSONObject;AResult:TJSONObject) of object;
+
   TMcpServer = class
   private
     FTransport: TMcpStdioTransport;
@@ -14,10 +16,12 @@ type
     FResourceManager: TMcpResourceManager;
     FPromptManager: TMcpPromptManager;
     FInitialized: Boolean;
+    FOnToolExecute: TToolExecuteEvent;
     procedure HandleMessage(const AMessage: IMcpMessage);
     procedure HandleRequest(const ARequest: TJsonRpcRequest);
     procedure SendResponse(const AId: TJSONValue; const AResult: TJSONValue);   //we also need a fn point to custom sendResponse
     procedure SendError(const AId: TJSONValue; ACode: Integer; const AMessage: string);
+    procedure SetOnToolExecute(const Value: TToolExecuteEvent);
   public
     constructor Create;
     destructor Destroy; override;
@@ -29,6 +33,7 @@ type
     function ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue): TJSONObject;
     property ResourceManager: TMcpResourceManager read FResourceManager;
     property PromptManager: TMcpPromptManager read FPromptManager;
+    property OnToolExecute:TToolExecuteEvent read FOnToolExecute write SetOnToolExecute;
   end;
 
 implementation
@@ -269,6 +274,8 @@ begin
         // 构造返回给模型的格式：{ "content": [ { "uri": "...", "text": "..." } ] }
         Result := TJSONObject.Create;
         Result.AddPair('content', LContents);
+        if Assigned(FOnToolExecute) then
+          FOnToolExecute(AArgs,Result);
         Exit; // 成功处理，直接退出
       end;
     end;
@@ -283,6 +290,8 @@ begin
         ARequestId,
         Self
       );
+      if (Result<>nil) and (Assigned(FOnToolExecute)) then
+        FOnToolExecute(AArgs,Result);
       Exit;
     end;
 end;
@@ -297,6 +306,11 @@ begin
   finally
     LResponse.Free;
   end;
+end;
+
+procedure TMcpServer.SetOnToolExecute(const Value: TToolExecuteEvent);
+begin
+  FOnToolExecute := Value;
 end;
 
 procedure TMcpServer.SendError(const AId: TJSONValue; ACode: Integer; const AMessage: string);
