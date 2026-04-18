@@ -4,6 +4,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.JSON, System.Generics.Collections,
+  System.SyncObjs,
   MCP.Types, MCP.JSONRPC, MCP.Transport.Stdio, MCP.Tools, MCP.Resources, MCP.Prompts;
 
 type
@@ -17,12 +18,14 @@ type
     FPromptManager: TMcpPromptManager;
     FInitialized: Boolean;
     FOnToolExecute: TToolExecuteEvent;
+    FCurrentCallID:string;
     procedure HandleMessage(const AMessage: IMcpMessage);
     procedure HandleRequest(const ARequest: TJsonRpcRequest);
     procedure SendResponse(const AId: TJSONValue; const AResult: TJSONValue);   //we also need a fn point to custom sendResponse
     procedure SendError(const AId: TJSONValue; ACode: Integer; const AMessage: string);
     procedure SetOnToolExecute(const Value: TToolExecuteEvent);
   public
+    callLocker:TCriticalSection;
     constructor Create;
     destructor Destroy; override;
     procedure Start;
@@ -30,7 +33,7 @@ type
     procedure RegisterTool(const ATool: TMcpTool; AExecute: TToolExecuteFunc);
     function GetToolsAsJson: TJSONArray;
     function ListToolsAsJson: TJSONArray;
-    function ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue): TJSONObject;
+    function ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: string): TJSONObject;
     property ResourceManager: TMcpResourceManager read FResourceManager;
     property PromptManager: TMcpPromptManager read FPromptManager;
     property OnToolExecute:TToolExecuteEvent read FOnToolExecute write SetOnToolExecute;
@@ -43,6 +46,7 @@ implementation
 constructor TMcpServer.Create;
 begin
   inherited Create;
+  callLocker:=TCriticalSection.Create;
   FTools := TObjectList<TMcpToolEntry>.Create;
   FResourceManager := TMcpResourceManager.Create;
   FPromptManager := TMcpPromptManager.Create;
@@ -58,6 +62,7 @@ destructor TMcpServer.Destroy;
 var
   i: Int64;
 begin
+  callLocker.free;
   for i := FTools.Count-1 downto 0 do
   begin
     FTools.Items[i].Info.InputSchema.Free;
@@ -143,13 +148,13 @@ begin
       if LTool.Info.Name = LToolName then
       begin
         // 必须 Clone（极重要）
-        LId := ARequest.GetMessageId.Clone as TJSONObject;
+        LId := ARequest.GetMessageId.Clone as TJSONValue;
 
         // 调用 Tool
         LResult :=
           LTool.Execute(
             LArgs,
-            LId,
+            TJSONString(LId).Value,
             Self
           );
         LId.Free;
@@ -241,7 +246,7 @@ begin
   Result.Add(LToolObj);
 end;
 
-function TMcpServer.ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: TJSONValue): TJSONObject;
+function TMcpServer.ExecuteTool(const AName: string;const AArgs: TJSONObject;const ARequestId: string): TJSONObject;
 var
   LTool: TMcpToolEntry;
   LCleanName: string;
@@ -249,6 +254,13 @@ var
   LUri: string;
   LContents: TJSONArray;
 begin
+  callLocker.enter;
+  if FCurrentCallID=ARequestId then
+  begin
+    callLocker.Leave;
+    Exit;
+  end else
+    FCurrentCallID:=ARequestId;
   Result := nil;
   LCleanName := AName;
 
@@ -276,6 +288,7 @@ begin
         Result.AddPair('content', LContents);
         if Assigned(FOnToolExecute) then
           FOnToolExecute(AArgs,Result);
+        callLocker.Leave;
         Exit; // 成功处理，直接退出
       end;
     end;
@@ -292,8 +305,10 @@ begin
       );
       if (Result<>nil) and (Assigned(FOnToolExecute)) then
         FOnToolExecute(AArgs,Result);
+      callLocker.Leave;
       Exit;
     end;
+  callLocker.Leave;
 end;
 
 procedure TMcpServer.SendResponse(const AId: TJSONValue; const AResult: TJSONValue);

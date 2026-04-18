@@ -9,7 +9,7 @@ type
   TToolExecuteFunc =
     reference to function(
       const Args: TJSONObject;
-      const RequestId: TJSONValue;
+      const RequestId: string;
       const Server: TObject
     ): TJSONObject;
 
